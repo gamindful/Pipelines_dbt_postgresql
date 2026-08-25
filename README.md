@@ -1,4 +1,5 @@
-# Pipelines_dbt_postgresql
+<details>
+<summary><b>Pipelines_dbt_postgresql</b></summary>
 
 dbt models targeting PostgreSQL 18.6 on a LAN server.
 
@@ -17,9 +18,12 @@ this repo -- which is why no credential is committed.
     ./venv/bin/dbt run       # build models
     ./venv/bin/dbt test      # validate them
 
+</details>
+
 ---
 
-# How the three machines fit together
+<details>
+<summary><b>How the three machines fit together</b></summary>
 
 Two computers and one repository, joined by three independent channels. Nothing
 crosses between them by accident — each arrow below is a separate mechanism that
@@ -83,9 +87,12 @@ only the `host:` in that machine's own `profiles.yml` differs.
 > only inside each machine's own `~/.dbt/profiles.yml` and travels only over
 > channel ①, never through ②.
 
+</details>
+
 ---
 
-# How this environment was built
+<details>
+<summary><b>How this environment was built</b></summary>
 
 A record of every configuration change that took this project from nothing to a
 working `git push`. Each step expands.
@@ -104,10 +111,12 @@ place was most of the work.
 | **Fusion dbt** *(neutralized)* | `~/.local/bin/dbt` → renamed `dbt-fusion` | 247 MB standalone binary. Was shadowing dbt-core and has **no Postgres adapter**. |
 | **Credentials** | `~/.dbt/profiles.yml` | Deliberately outside the repo. Never committed. |
 
+</details>
+
 ---
 
-<summary><details>Connection config</details></summary>
---# Connection config
+<details>
+<summary><b>Connection config</b></summary>
 
 A record of the steps taken on the **server** side (`192.168.1.69`, this Windows
 machine) to stand up PostgreSQL 18 for `findata` and expose it safely to the
@@ -339,8 +348,12 @@ winget install --id GitHub.cli -e
 
 </details>
 
+</details>
+
 ---
-<summary><details><b>Connection configuraetion</b></summary>
+
+<details>
+<summary><b>Connection configuration</b></summary>
 
 <details>
 <summary><b>Step 1 — Create the local Python environment</b></summary>
@@ -710,5 +723,7 @@ If the remote also changed, rebase local work on top before pushing:
 ```bash
 cd dbt_config_repo && git pull --rebase && git push
 ```
+
+</details>
 
 </details>
