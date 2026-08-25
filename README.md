@@ -106,6 +106,245 @@ place was most of the work.
 
 ---
 
+# Connection config
+
+A record of the steps taken on the **server** side (`192.168.1.69`, this Windows
+machine) to stand up PostgreSQL 18 for `findata` and expose it safely to the
+LAN — the counterpart to the client-side record below. Each step expands.
+
+<details>
+<summary><b>Step 1 — Confirm the existing install and network posture</b></summary>
+
+PostgreSQL 18 was already installed and running as the `postgresql-x64-18`
+Windows service before this work started, with `listen_addresses = '*'`, port
+`5432`, an inbound firewall rule for 5432, and a `pg_hba.conf` entry for
+`192.168.1.0/24` already in place — most of the "accept LAN connections" work
+(the client repo's Step 2) had already been done.
+
+```powershell
+Get-Service -Name "postgresql*"
+Select-String -Path "...\postgresql.conf" -Pattern "^listen_addresses|^port"
+Get-Content "...\pg_hba.conf" | Select-String -Pattern "^[^#]"
+ipconfig | Select-String "IPv4"
+```
+
+</details>
+
+<details>
+<summary><b>Step 2 — Grant the service account write access to the tablespace folder</b></summary>
+
+The Postgres service runs as `NT AUTHORITY\NetworkService`, not the logged-in
+user:
+
+```powershell
+(Get-WmiObject Win32_Service -Filter "Name='postgresql-x64-18'").StartName
+# NT AUTHORITY\NetworkService
+```
+
+`CREATE TABLESPACE` pointed at a folder inside the project directory failed
+with a permissions error until that account was granted rights explicitly:
+
+```powershell
+icacls ".\pgdata" /grant "NT AUTHORITY\NetworkService:(OI)(CI)F"
+```
+
+**Gotcha:** this grant is lost if the folder is ever deleted and recreated —
+it had to be reapplied after the teardown in Step 11.
+
+</details>
+
+<details>
+<summary><b>Step 3 — Create a dedicated tablespace and the <code>findata</code> database</b></summary>
+
+```sql
+CREATE TABLESPACE financial_tablespace
+    LOCATION 'C:/.../Financial_analytics/pgdata/financial_tablespace';
+
+CREATE DATABASE findata
+    WITH TABLESPACE = financial_tablespace
+    ENCODING = 'UTF8';
+```
+
+Keeps `findata`'s actual data files physically inside the project directory,
+while every other database on the cluster (`postgres`, `template0/1`) stays on
+the default tablespace, completely unaffected by anything done here.
+
+</details>
+
+<details>
+<summary><b>Step 4 — Create a least-privilege application role and schema</b></summary>
+
+```sql
+CREATE ROLE app_findata WITH LOGIN PASSWORD :'app_password';
+CREATE SCHEMA crypto_fx AUTHORIZATION app_findata;
+GRANT CONNECT ON DATABASE findata TO app_findata;
+GRANT USAGE, CREATE ON SCHEMA crypto_fx TO app_findata;
+```
+
+The password is generated with `RNGCryptoServiceProvider` and passed to
+`psql` as a variable (`-v app_password=...`), so it never appears inside the
+`.sql` file itself — only in the machine-local `.env`.
+
+</details>
+
+<details>
+<summary><b>Step 5 — Define the schema: <code>assets</code> + <code>price_history</code></b></summary>
+
+```sql
+CREATE TABLE crypto_fx.assets (
+    asset_id SERIAL PRIMARY KEY,
+    symbol   TEXT NOT NULL UNIQUE,
+    ...
+);
+
+CREATE TABLE crypto_fx.price_history (
+    asset_id   INTEGER REFERENCES crypto_fx.assets(asset_id) ON DELETE CASCADE,
+    trade_date DATE NOT NULL,
+    ...
+    UNIQUE (asset_id, trade_date)
+);
+```
+
+One row per instrument, one row per instrument-day. The `UNIQUE` constraint on
+`(asset_id, trade_date)` is what makes the loader's `ON CONFLICT` upsert
+idempotent — safe to re-run after every download.
+
+</details>
+
+<details>
+<summary><b>Step 6 — Install the toolchain (neither Python nor Git existed here)</b></summary>
+
+```powershell
+winget install --id Python.Python.3.12 -e
+winget install --id Git.Git -e
+```
+
+**Gotcha:** each PowerShell command in this environment starts a fresh
+process, so a plain `python`/`git` call right after install still failed —
+`PATH` had to be re-derived from the registry (`HKCU` for the per-user Python
+install, `HKLM` for the machine-wide Git install) and prefixed explicitly in
+every subsequent command block, not just the one that ran the installer.
+
+</details>
+
+<details>
+<summary><b>Step 7 — Install the Python packages</b></summary>
+
+```powershell
+python -m pip install yfinance psycopg2-binary sqlalchemy pandas python-dotenv
+```
+
+`yfinance` for the downloader, `sqlalchemy` + `psycopg2-binary` for the
+loader, `python-dotenv` to read `.env` instead of hardcoding credentials.
+
+</details>
+
+<details>
+<summary><b>Step 8 — Write the downloader/loader and fix the numpy-adaptation bug</b></summary>
+
+`download_dataset.py` pulls OHLCV via `yfinance` into `datasets/*.csv`;
+`load_dataset.py` upserts them into `crypto_fx`. The first load run failed:
+
+```
+psycopg2.errors.InvalidSchemaName: no existe el esquema «np»
+LINE 5: (1, '2026-02-25'::date, np.float64(64077.769...
+```
+
+**Cause:** pandas/numpy scalar types (`np.float64`) aren't natively adapted by
+psycopg2's `executemany`. **Fix:** a `_to_native()` helper that calls
+`.item()` on numpy scalars and maps `NaN`/`NaT` to `None` before binding
+parameters.
+
+</details>
+
+<details>
+<summary><b>Step 9 — Scope <code>pg_hba.conf</code> to the specific database and role</b></summary>
+
+Replaced the inherited broad rule with one scoped to just this project:
+
+```diff
+- host    all             all             192.168.1.0/24          scram-sha-256
++ host    findata         app_findata     192.168.1.0/24          scram-sha-256
+```
+
+```sql
+SELECT pg_reload_conf();
+```
+
+Verified from the LAN address itself, not just assumed: `app_findata` →
+`findata` succeeded; `app_findata` → `postgres` and `postgres` → `findata`
+were both rejected with `no pg_hba.conf entry` — confirming the scoping
+actually took effect, not just that the file parsed.
+
+</details>
+
+<details>
+<summary><b>Step 10 — Keep secrets and binary data out of git</b></summary>
+
+```
+# .gitignore
+.env
+pgdata/
+datasets/
+```
+
+`.env.example` is committed as a template with placeholder values instead —
+mirrors the client repo's `profiles.example.yml` pattern.
+
+```powershell
+git init
+git add -A
+git commit -m "..."
+```
+
+</details>
+
+<details>
+<summary><b>Step 11 — Full teardown, and a UTF-8 BOM trap</b></summary>
+
+On request, everything was torn down: `DROP DATABASE`, `DROP TABLESPACE`,
+`DROP ROLE`, `pg_hba.conf` reverted, local project files deleted.
+
+Recreating it afterward hit a new bug: PowerShell's `Set-Content -Encoding
+utf8` writes a UTF-8 **BOM**. Round-tripping the generated password through a
+temp file and Bash's `cat`/`sed` embedded that BOM into `.env`, silently
+corrupting the password (auth failed with no obvious reason). Fixed by
+trimming `U+FEFF` explicitly and writing the file with
+`[System.Text.UTF8Encoding($false)]` (no BOM) — then verifying with a live
+`psql` login *before* moving on, rather than trusting the file looked right.
+
+</details>
+
+<details>
+<summary><b>Step 12 — Recreate the stack, reapplying the Step 2 grant</b></summary>
+
+Deleting `pgdata/` during teardown also destroys the `NetworkService`
+permission grant from Step 2 — `CREATE TABLESPACE` failed again with
+`no se pudo definir los permisos del directorio` (permission denied) until
+`icacls` was reapplied. Recreated tablespace → database → role → schema →
+tables, then reloaded the same `datasets/` CSVs with `load_dataset.py`.
+
+</details>
+
+<details>
+<summary><b>Step 13 — Fix the GitHub CLI: <code>pip install gh</code> is not the GitHub CLI</b></summary>
+
+`pip install gh` had silently installed an unrelated PyPI package named `gh`
+(version `0.0.4`) — not GitHub's actual CLI. `gh repo clone` then failed with
+`gh: command not found`, because no real binary had ever been placed on
+`PATH`.
+
+```powershell
+python -m pip uninstall gh -y
+winget install --id GitHub.cli -e
+```
+
+`gh --version` afterward reports the genuine `gh 2.98.0`.
+
+</details>
+
+---
+
 <details>
 <summary><b>Step 1 — Create the local Python environment</b></summary>
 
