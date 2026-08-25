@@ -106,7 +106,7 @@ place was most of the work.
 
 ---
 
-<details>Connection config</details>
+<summary><details>Connection config</details></summary>
 --# Connection config
 
 A record of the steps taken on the **server** side (`192.168.1.69`, this Windows
@@ -340,7 +340,7 @@ winget install --id GitHub.cli -e
 </details>
 
 ---
-<details><b>Connection configuraetion</b>
+<summary><details><b>Connection configuraetion</b></summary>
 
 <details>
 <summary><b>Step 1 — Create the local Python environment</b></summary>
