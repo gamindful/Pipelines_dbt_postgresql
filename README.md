@@ -1,4 +1,5 @@
-# How the three machines fit together
+<details>
+<summary><b>How the three machines fit together</b></summary>
 
 Two computers and one repository, joined by three independent channels. Nothing
 crosses between them by accident — each arrow below is a separate mechanism that
@@ -62,7 +63,7 @@ only the `host:` in that machine's own `profiles.yml` differs.
 > only inside each machine's own `~/.dbt/profiles.yml` and travels only over
 > channel ①, never through ②.
 
-
+</details>
 
 ---
 <details>
