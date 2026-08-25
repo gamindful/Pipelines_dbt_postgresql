@@ -19,22 +19,76 @@ this repo -- which is why no credential is committed.
 
 ---
 
+# How the three machines fit together
+
+Two computers and one repository, joined by three independent channels. Nothing
+crosses between them by accident — each arrow below is a separate mechanism that
+had to be configured on its own.
+
+```mermaid
+flowchart TB
+    subgraph GH["☁️ GitHub · gamindful/Pipelines_dbt_postgresql"]
+        REPO["models/*.sql · dbt_project.yml<br/>tasks.json · requirements.txt<br/><i>code only — no credentials, no data</i>"]
+    end
+
+    subgraph CLIENT["💻 CLIENT — MacBook · macOS"]
+        direction TB
+        CODE["VS Code<br/><i>Cmd+Shift+B</i>"]
+        CDBT["venv/bin/dbt<br/>dbt-core 1.12.3 + postgres"]
+        CPROF["~/.dbt/profiles.yml<br/>🔑 host + password<br/><i>never committed</i>"]
+        CODE --> CDBT
+        CPROF -. "reads connection" .-> CDBT
+    end
+
+    subgraph SERVER["🖥️ SERVER — Windows PC · 192.168.1.69"]
+        direction TB
+        PG[("PostgreSQL 18.6<br/>database: local<br/>schema: public")]
+    end
+
+    CDBT ==>|"① compiled SQL over LAN · TCP 5432"| PG
+    PG ==> |"results · views + tables built here"| CDBT
+
+    CLIENT --> |"② git push"| REPO
+    REPO --> |"git pull"| CLIENT
+
+    REPO -. "③ git clone / pull — optional second workstation" .-> SERVER
+
+    classDef client fill:#e8f4f0,stroke:#0f5f52,stroke-width:2px,color:#14201c
+    classDef server fill:#eef0f6,stroke:#3a4a7a,stroke-width:2px,color:#14201c
+    classDef cloud  fill:#f6f1e8,stroke:#8a6a1f,stroke-width:2px,color:#14201c
+    class CODE,CDBT,CPROF client
+    class PG server
+    class REPO cloud
+```
+
+### The three channels
+
+**① Client → Server — LAN, TCP 5432.** dbt compiles the `.sql` files into real
+SQL and sends it to Postgres, which builds the views and tables. **The data
+never lands on the MacBook.** This is the channel that required
+`listen_addresses`, `pg_hba.conf`, the Windows firewall rule and the Private
+network profile — Steps 2 and 3.
+
+**② Client ↔ GitHub — git.** Only source is versioned: models, project config,
+tasks, dependency pins. Connection details stay in `~/.dbt/profiles.yml`,
+outside the repository — which is what makes the repo safe to publish. Step 5.
+
+**③ GitHub → Server — optional.** The Windows machine can clone the same repo
+and run dbt against `localhost` instead of across the LAN. Worth doing for large
+loads, since the data then never crosses the network. The models are identical;
+only the `host:` in that machine's own `profiles.yml` differs.
+
+> **The credential boundary is the point of this diagram.** Code flows through
+> GitHub and is visible to anyone with repository access. The password exists
+> only inside each machine's own `~/.dbt/profiles.yml` and travels only over
+> channel ①, never through ②.
+
+---
+
 # How this environment was built
 
 A record of every configuration change that took this project from nothing to a
 working `git push`. Each step expands.
-
-**Topology:** a macOS client running dbt, reaching a Windows machine running
-PostgreSQL over the local network.
-
-```
-CLIENT · macOS                          SERVER · Windows
-────────────────                        ─────────────────
-VS Code + tasks.json                    PostgreSQL 18.6
-venv/bin/dbt   (dbt-core 1.12.3) ──▶    192.168.1.69:5432
-venv/bin/python3.13                     database: local
-~/.dbt/profiles.yml (credentials)       schema: public
-```
 
 ## Paths that had to change
 
@@ -59,7 +113,7 @@ The global Python is used exactly once, to bootstrap an isolated environment.
 After this, nothing in the project touches system Python again.
 
 ```bash
-cd /Users/gamaliel/Documents/G/DS/pipelines/Pipelines_dbt_postgresql
+cd dbt_config_repo
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 ```
@@ -200,7 +254,7 @@ No `.sql` file and no committed config contains a server address or credential.
 <summary><b>Step 6 — Verify the connection</b></summary>
 
 ```bash
-cd /Users/gamaliel/Documents/G/DS/pipelines/Pipelines_dbt_postgresql
+cd dbt_config_repo
 ./venv/bin/dbt debug
 ```
 
@@ -255,7 +309,7 @@ type -a dbt
 
 ```json
 {
-  "python.defaultInterpreterPath": "/Users/gamaliel/Documents/G/DS/pipelines/Pipelines_dbt_postgresql/venv/bin/python3.13",
+  "python.defaultInterpreterPath": "dbt_config_repo/venv/bin/python3.13",
   "python.terminal.activateEnvironment": true
 }
 ```
@@ -402,7 +456,7 @@ grep -rn "<your-password>" . --exclude-dir=.git --exclude-dir=venv
 The ongoing loop:
 
 ```bash
-cd /Users/gamaliel/Documents/G/DS/pipelines/Pipelines_dbt_postgresql
+cd dbt_config_repo
 git add -A
 git status --short          # review before committing
 git commit -m "..."
@@ -418,7 +472,7 @@ git fetch && git status -sb && git diff origin/main --stat
 If the remote also changed, rebase local work on top before pushing:
 
 ```bash
-cd /Users/gamaliel/Documents/G/DS/pipelines/Pipelines_dbt_postgresql && git pull --rebase && git push
+cd dbt_config_repo && git pull --rebase && git push
 ```
 
 </details>
