@@ -1,0 +1,15 @@
+# Documentation only -- dbt does NOT read this file from here.
+# Copy into ~/.dbt/profiles.yml and supply your own values.
+pipelines_dbt_postgresql:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_PG_HOST') }}"
+      port: 5432
+      user: "{{ env_var('DBT_PG_USER') }}"
+      pass: "{{ env_var('DBT_PG_PASS') }}"
+      dbname: local
+      schema: public
+      threads: 4
+      connect_timeout: 5

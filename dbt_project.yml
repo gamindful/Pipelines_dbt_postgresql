@@ -1,0 +1,20 @@
+# Must be lowercase letters, digits and underscores -- so it cannot match
+# the folder name "Pipelines_dbt_postgresql" exactly.
+name: 'pipelines_dbt_postgresql'
+version: '1.0.0'
+config-version: 2
+
+# Names which profile in ~/.dbt/profiles.yml supplies the connection.
+# The server address lives THERE, never here. That is what makes this
+# folder safe to push to GitHub.
+profile: 'pipelines_dbt_postgresql'
+
+model-paths: ["models"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  pipelines_dbt_postgresql:
+    +materialized: view
