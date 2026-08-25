@@ -106,7 +106,8 @@ place was most of the work.
 
 ---
 
-# Connection config
+<details>Connection config</details>
+--# Connection config
 
 A record of the steps taken on the **server** side (`192.168.1.69`, this Windows
 machine) to stand up PostgreSQL 18 for `findata` and expose it safely to the
@@ -327,12 +328,7 @@ tables, then reloaded the same `datasets/` CSVs with `load_dataset.py`.
 </details>
 
 <details>
-<summary><b>Step 13 — Fix the GitHub CLI: <code>pip install gh</code> is not the GitHub CLI</b></summary>
-
-`pip install gh` had silently installed an unrelated PyPI package named `gh`
-(version `0.0.4`) — not GitHub's actual CLI. `gh repo clone` then failed with
-`gh: command not found`, because no real binary had ever been placed on
-`PATH`.
+<summary><b>Step 13 — Install GitHub CLI</b></summary>
 
 ```powershell
 python -m pip uninstall gh -y
@@ -344,6 +340,7 @@ winget install --id GitHub.cli -e
 </details>
 
 ---
+<details><b>Connection configuraetion</b>
 
 <details>
 <summary><b>Step 1 — Create the local Python environment</b></summary>
