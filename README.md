@@ -1,29 +1,4 @@
-<details>
-<summary><b>Pipelines_dbt_postgresql</b></summary>
-
-dbt models targeting PostgreSQL 18.6 on a LAN server.
-
-## Setup
-
-    python3 -m venv venv
-    ./venv/bin/pip install -r requirements.txt
-
-Copy the profile block from `profiles.example.yml` into `~/.dbt/profiles.yml`
-and fill in your own host and credentials. dbt reads it from there, not from
-this repo -- which is why no credential is committed.
-
-## Use
-
-    ./venv/bin/dbt debug     # verify the connection
-    ./venv/bin/dbt run       # build models
-    ./venv/bin/dbt test      # validate them
-
-</details>
-
----
-
-<details>
-<summary><b>How the three machines fit together</b></summary>
+# How the three machines fit together
 
 Two computers and one repository, joined by three independent channels. Nothing
 crosses between them by accident — each arrow below is a separate mechanism that
@@ -87,9 +62,34 @@ only the `host:` in that machine's own `profiles.yml` differs.
 > only inside each machine's own `~/.dbt/profiles.yml` and travels only over
 > channel ①, never through ②.
 
+
+
+---
+<details>
+<summary><b>Pipelines_dbt_postgresql</b></summary>
+
+dbt models targeting PostgreSQL 18.6 on a LAN server.
+
+## Setup
+
+    python3 -m venv venv
+    ./venv/bin/pip install -r requirements.txt
+
+Copy the profile block from `profiles.example.yml` into `~/.dbt/profiles.yml`
+and fill in your own host and credentials. dbt reads it from there, not from
+this repo -- which is why no credential is committed.
+
+## Use
+
+    ./venv/bin/dbt debug     # verify the connection
+    ./venv/bin/dbt run       # build models
+    ./venv/bin/dbt test      # validate them
+
 </details>
 
 ---
+
+
 
 <details>
 <summary><b>How this environment was built</b></summary>
