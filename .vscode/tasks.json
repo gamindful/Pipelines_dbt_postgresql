@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "options": { "cwd": "${workspaceFolder}" },
+  "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+  "problemMatcher": [],
+  "tasks": [
+    {
+      "label": "dbt: run current model",
+      "type": "shell",
+      "command": "${workspaceFolder}/venv/bin/dbt",
+      "args": ["run", "--select", "${fileBasenameNoExtension}"],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "dbt: build current model (run + test)",
+      "type": "shell",
+      "command": "${workspaceFolder}/venv/bin/dbt",
+      "args": ["build", "--select", "${fileBasenameNoExtension}"]
+    },
+    {
+      "label": "dbt: preview current model",
+      "type": "shell",
+      "command": "${workspaceFolder}/venv/bin/dbt",
+      "args": ["show", "--select", "${fileBasenameNoExtension}", "--limit", "50"]
+    },
+    {
+      "label": "dbt: run everything",
+      "type": "shell",
+      "command": "${workspaceFolder}/venv/bin/dbt",
+      "args": ["run"]
+    },
+    {
+      "label": "dbt: debug connection",
+      "type": "shell",
+      "command": "${workspaceFolder}/venv/bin/dbt",
+      "args": ["debug"]
+    }
+  ]
+}

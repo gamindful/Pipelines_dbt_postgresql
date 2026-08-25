@@ -4,3 +4,5 @@ logs/
 venv/
 profiles.yml
 .DS_Store
+.vscode/settings.json
+.vscode/settings.json
