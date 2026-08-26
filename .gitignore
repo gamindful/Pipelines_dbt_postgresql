@@ -6,3 +6,6 @@ profiles.yml
 .DS_Store
 .vscode/settings.json
 .vscode/settings.json
+server_side/.env
+__pycache__/
+*.py[cod]
