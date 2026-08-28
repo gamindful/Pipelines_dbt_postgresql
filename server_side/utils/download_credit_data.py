@@ -26,7 +26,7 @@ from pathlib import Path
 
 import requests
 
-DATASETS_DIR = Path(__file__).parent.parent / "datasets"
+DATASETS_DIR = Path(__file__).parent.parent / "datasets/credit"
 
 SOURCES = {
     "credit_default": {
@@ -112,6 +112,22 @@ def normalise_german_credit(payload: bytes) -> list[list]:
     return rows
 
 
+def _fmt(v) -> str:
+    """xlrd reads every numeric .xls cell as a Python float, so integer-typed
+    columns (client_id, sex, pay_0, ...) come out as '1.0', '2.0', etc. That
+    fails to load into an INTEGER/SMALLINT column: '1.0'::smallint raises
+    invalid input syntax. Collapse whole-number floats to plain int strings
+    here so every downstream loader (COPY, psql \\copy, dbt seed) gets text
+    Postgres's integer types actually accept. Monetary columns like
+    limit_bal keep their fractional part when they have one.
+    """
+    if v is None:
+        return ""
+    if isinstance(v, float) and v.is_integer():
+        v = int(v)
+    return str(v).strip()
+
+
 def write_csv(name: str, header: list[str], rows: list[list]) -> Path:
     out = DATASETS_DIR / f"{name}.csv"
     with out.open("w", encoding="utf-8", newline="") as fh:
@@ -120,7 +136,7 @@ def write_csv(name: str, header: list[str], rows: list[list]) -> Path:
         for row in rows:
             row = list(row)[: len(header)]
             row += [""] * (len(header) - len(row))
-            w.writerow(["" if v is None else str(v).strip() for v in row])
+            w.writerow([_fmt(v) for v in row])
     print(f"  wrote {out.name}: {len(rows):,} rows x {len(header)} columns")
     return out
 

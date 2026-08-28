@@ -49,11 +49,6 @@ differ, and neither is committed.
 ```
 Windows cluster 192.168.1.69 · PostgreSQL 18.6
 │
-├─▷ findata                      tablespace: financial_tablespace
-│    ├─▷ crypto_fx               assets, price_history      ← Project 4
-│    ├─▷ analytics               dbt marts for crypto
-│    └─▷ public
-│
 ├─▷ credit_risk                  tablespace: credit_tablespace     ← NEW
 │    ├─▷ credit_raw              credit_default, german_credit
 │    │      └─ loaded by server_side/utils/load_credit_data.py

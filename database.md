@@ -46,19 +46,37 @@ crossing *databases* is impossible. Hence: one database, many schemas.
 
 ## Server steps (Windows, `192.168.1.69`)
 
+Everything in this section runs directly on that machine, in a regular
+PowerShell window — no particular working directory required, every path
+below is absolute.
+
+`psql` is installed at `C:\Program Files\PostgreSQL\18\bin\psql.exe` and is
+**not** on `PATH` by default. Either add that folder to `PATH` once, or call
+the full path every time.
+
+> **`pgdata` here is not the server's real data directory.** The running
+> `postgresql-x64-18` service (confirmed via `Get-CimInstance Win32_Service`)
+> uses `C:\Program Files\PostgreSQL\18\data` as its actual `PGDATA` — that's
+> where the EDB installer put it, and it's not something you create or manage
+> by hand. The `...\postgres_local_server\pgdata\` folder below is just a
+> tablespace target you create yourself; the name is coincidental. It is
+> **not** nested inside the real data directory, which is what actually
+> matters — Postgres refuses a tablespace location that is.
+
 ### Step 1 — Create the tablespace folder
 
 ```powershell
-mkdir .\pgdata\analytics_tablespace
+mkdir "C:\Users\Gamaliel\Documents\G\databases\postgres_local_server\pgdata\analytics_tablespace"
 ```
 
 ### Step 2 — Grant the service account access to it
 
-Postgres runs as `NT AUTHORITY\NetworkService`, not as the logged-in user.
-Skipping this makes `CREATE TABLESPACE` fail with a permissions error.
+Postgres runs as `NT AUTHORITY\NetworkService`, not as the logged-in user
+(confirmed via the service's `StartName`). Skipping this makes
+`CREATE TABLESPACE` fail with a permissions error.
 
 ```powershell
-icacls ".\pgdata\analytics_tablespace" /grant "NT AUTHORITY\NetworkService:(OI)(CI)F"
+icacls "C:\Users\Gamaliel\Documents\G\databases\postgres_local_server\pgdata\analytics_tablespace" /grant "NT AUTHORITY\NetworkService:(OI)(CI)F"
 ```
 
 > This grant is lost if the folder is ever deleted and recreated. Reapply it
@@ -71,7 +89,7 @@ can run inside a transaction block.
 
 ```powershell
 psql -U postgres -d postgres `
-  -c "CREATE TABLESPACE analytics_tablespace LOCATION 'C:/Users/Gamaliel/Documents/GitHub/Financial_analytics/pgdata/analytics_tablespace';" `
+  -c "CREATE TABLESPACE analytics_tablespace LOCATION 'C:/Users/Gamaliel/Documents/G/databases/postgres_local_server/pgdata/analytics_tablespace';" `
   -c "CREATE DATABASE analytics_lab WITH TABLESPACE = analytics_tablespace ENCODING = 'UTF8';"
 ```
 
@@ -87,32 +105,45 @@ Copy the output — it is needed in steps 5 and 8.
 
 Passed as a psql variable so it never appears inside a `.sql` file.
 
+> **`-c` cannot be used here.** On this Windows/psql 18 setup, `:'var'` and
+> even bare `:var` interpolation silently fails to trigger when the SQL is
+> passed as a `-c` command-line argument — the colon reaches the parser
+> unsubstituted and you get `error de sintaxis en o cerca de «:»` /
+> `syntax error at or near ":"`, no matter how or where `$pw` was set.
+> Confirmed with a minimal `SELECT :app_password;` test. The exact same text
+> read from a file via `-f` works correctly, so that's the form to use —
+> and it still keeps the password out of the `.sql` file itself, since only
+> the variable *reference* goes on disk, briefly, in `$env:TEMP`.
+
 ```powershell
-psql -U postgres -d analytics_lab -v app_password="$pw" `
-  -c "CREATE ROLE app_analytics WITH LOGIN PASSWORD :'app_password';" `
-  -c "GRANT CONNECT ON DATABASE analytics_lab TO app_analytics;"
+@'
+CREATE ROLE gama WITH LOGIN PASSWORD :'app_password';
+'@ | Out-File -Encoding utf8 "$env:TEMP\create_gama_role.sql"
+
+psql -U postgres -d postgres -v app_password="$pw" -f "$env:TEMP\create_gama_role.sql"
+Remove-Item "$env:TEMP\create_gama_role.sql"
 ```
 
 ### Step 6 — Create the first schema: `credit_risk`
 
 ```powershell
 psql -U postgres -d analytics_lab `
-  -c "CREATE SCHEMA credit_risk AUTHORIZATION app_analytics;" `
-  -c "GRANT USAGE, CREATE ON SCHEMA credit_risk TO app_analytics;"
+  -c "CREATE SCHEMA credit_risk AUTHORIZATION gama;" `
+  -c "GRANT USAGE, CREATE ON SCHEMA credit_risk TO gama;"
 ```
 
 ### Step 7 — Let dbt create its own schemas
 
 ```powershell
 psql -U postgres -d analytics_lab `
-  -c "GRANT CREATE ON DATABASE analytics_lab TO app_analytics;" `
-  -c "ALTER ROLE app_analytics SET search_path = credit_risk, staging, marts, public;"
+  -c "GRANT CREATE ON DATABASE analytics_lab TO gama;" `
+  -c "ALTER ROLE gama SET search_path = credit_risk, staging, marts, public;"
 ```
 
-Verify — `credit_risk` owned by `app_analytics`, and nothing else yet:
+Verify — `credit_risk` owned by `gama`, and nothing else yet:
 
 ```powershell
-psql -U postgres -d analytics_lab -c "\dn" -c "\du app_analytics"
+psql -U postgres -d analytics_lab -c "\dn" -c "\du gama"
 ```
 
 ---
@@ -134,7 +165,7 @@ analytics_lab:
       type: postgres
       host: 192.168.1.69
       port: 5432
-      user: app_analytics
+      user: gama
       pass: '<password-from-step-4>'
       dbname: analytics_lab
       schema: staging
@@ -170,7 +201,10 @@ cd /Users/gamaliel/Documents/G/DS/pipelines/Pipelines_dbt_postgresql && ./venv/b
 `analytics_lab` exists with an empty `credit_risk` schema and a working dbt
 connection. Nothing is in the schema yet.
 
-**Next:** source tables and the loader, then the first staging model.
+**Next:** source tables and the loader, then the first staging model. Where
+the loader/extraction code lives and runs from is not decided yet — fill in
+the "Loader / extraction scripts" row in the reference table below once it
+is.
 
 Two things to carry into that stage:
 
@@ -189,10 +223,18 @@ Two things to carry into that stage:
 |---|---|---|
 | Tablespace | `analytics_tablespace` | psql, step 3 |
 | Database | `analytics_lab` | psql, step 3 |
-| Role | `app_analytics` | psql, step 5 |
+| Role | `gama` | psql, step 5 |
 | First schema | `credit_risk` | psql, step 6 |
 | Model schemas | `staging`, `intermediate`, `marts` | dbt, on first run |
 | Profile | `analytics_lab` in `~/.dbt/profiles.yml` | manual, step 8 |
+
+| Path | What it is | Machine |
+|---|---|---|
+| `C:\Program Files\PostgreSQL\18\bin\psql.exe` | psql client binary (run steps 3, 5–7) | Windows server |
+| `C:\Program Files\PostgreSQL\18\data` | Real `PGDATA` — installed by EDB, not created by hand | Windows server |
+| `C:\Users\Gamaliel\Documents\G\databases\postgres_local_server\pgdata\analytics_tablespace` | Tablespace target folder, created in step 1 | Windows server |
+| `/Users/gamaliel/Documents/G/DS/pipelines/Pipelines_dbt_postgresql` | dbt project — steps 9–10 | macOS client |
+| Loader / extraction scripts | **TBD** — not designed yet, see *Where this stops* below | — |
 
 ### Troubleshooting
 

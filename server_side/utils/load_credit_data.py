@@ -27,7 +27,9 @@ import psycopg2
 from psycopg2 import sql
 
 ROOT = Path(__file__).parent.parent
-DATASETS_DIR = ROOT / "datasets"
+# download_credit_data.py writes into datasets/credit/ (kept separate from
+# the crypto_fx CSVs that already live directly under datasets/).
+DATASETS_DIR = ROOT / "datasets" / "credit"
 ENV_FILE = ROOT / ".env"
 
 TARGETS = {

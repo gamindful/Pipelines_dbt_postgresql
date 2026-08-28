@@ -88,7 +88,19 @@ CREATE TABLE IF NOT EXISTS credit_raw.german_credit (
     loaded_at                TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA credit_raw TO app_credit;
+-- Tables (and german_credit's SERIAL sequence) were created while connected
+-- as postgres, so postgres owns them even though the schema itself says
+-- AUTHORIZATION app_credit -- ownership does not cascade from schema to the
+-- objects created inside it. TRUNCATE ... RESTART IDENTITY needs sequence
+-- OWNERSHIP, not just USAGE, so transfer both explicitly.
+ALTER TABLE credit_raw.credit_default OWNER TO app_credit;
+ALTER TABLE credit_raw.german_credit  OWNER TO app_credit;
+ALTER SEQUENCE credit_raw.german_credit_applicant_id_seq OWNER TO app_credit;
+
+-- TRUNCATE is included because load_credit_data.py --truncate uses it to
+-- make reruns idempotent (client_id/applicant_id would otherwise collide
+-- with existing rows on a second load).
+GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA credit_raw TO app_credit;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA credit_raw TO app_credit;
 ALTER DEFAULT PRIVILEGES FOR ROLE app_credit IN SCHEMA credit_raw
-    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_credit;
+    GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON TABLES TO app_credit;
