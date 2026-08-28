@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="660" viewBox="0 0 1420 660" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="1420" viewBox="0 0 1420 1420" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+  <rect width="1420" height="1420" fill="#FFFFFF"/>
+  <g transform="translate(0,380)">
   <rect width="1420" height="660" fill="#F4F6F8"/>
 
   <text x="40" y="46" font-size="24" font-weight="700" fill="#151A21">Pipelines_dbt_postgresql — how the pieces connect</text>
@@ -71,11 +73,13 @@
   <text x="252" y="242" font-size="13" font-weight="600" fill="#0F6E63">② git push / pull</text>
 
   <!-- (3) github -> server (optional) -->
-  <path d="M928,170 L1140,208 L1140,242" fill="none" stroke="#8A6A1F" stroke-width="2" stroke-dasharray="7 4" marker-end="url(#a3)"/>
-  <text x="944" y="204" font-size="12.5" fill="#8A6A1F">③ clone / pull — optional, run dbt on the server</text>
+  <path d="M922,196 L1180,220 L1180,242" fill="none" stroke="#8A6A1F" stroke-width="2" stroke-dasharray="7 4" marker-end="url(#a3)"/>
+  <text x="934" y="150" font-size="12.5" fill="#8A6A1F">③ clone / pull — optional,</text>
+  <text x="934" y="167" font-size="12.5" fill="#8A6A1F">run dbt on the server instead</text>
 
   <!-- footer note -->
   <rect x="40" y="596" width="880" height="44" rx="5" fill="#FFFFFF" stroke="#DBE1E8"/>
   <text x="58" y="616" font-size="12.5" font-weight="600" fill="#151A21">The credential boundary is the point of this diagram.</text>
   <text x="58" y="633" font-size="12" fill="#3A434F">Code travels channel ②. The password exists only in each machine's own profiles.yml and travels only channel ①.</text>
+  </g>
 </svg>

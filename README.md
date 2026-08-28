@@ -89,6 +89,88 @@ dbt build --select credit_risk_marts
 
 Full build steps are in [database.md](database.md).
 
+## Server configuration
+
+Still true today, independent of which database exists. Set once per machine;
+the historical log further down records how each piece was arrived at.
+
+**Four conditions must all hold for the server to accept LAN connections.** A
+failure in any one looks identical from the client — a connection that hangs
+until timeout.
+
+| # | Condition | Where |
+|---|---|---|
+| 1 | `listen_addresses = '*'` | `postgresql.conf` — default is `localhost` only |
+| 2 | a rule covering the LAN, database and role | `pg_hba.conf` |
+| 3 | inbound TCP 5432 allowed | Windows Firewall |
+| 4 | network profile is **Private**, not Public | `Get-NetConnectionProfile` |
+
+`listen_addresses` is `postmaster`-context, so it needs a **restart**, not a
+reload:
+
+```powershell
+New-NetFirewallRule -DisplayName "PostgreSQL 5432" -Direction Inbound `
+  -Protocol TCP -LocalPort 5432 -Action Allow
+Restart-Service postgresql-x64-18
+```
+
+Scope `pg_hba.conf` to the specific database and role rather than leaving the
+whole cluster open:
+
+```
+# TYPE  DATABASE       USER   ADDRESS           METHOD
+host    analytics_lab  gama   192.168.1.0/24    scram-sha-256
+```
+
+Inspect the live configuration:
+
+```powershell
+Get-Service -Name "postgresql*"
+Select-String -Path "C:\Program Files\PostgreSQL\18\data\postgresql.conf" -Pattern "^listen_addresses|^port"
+Get-Content "C:\Program Files\PostgreSQL\18\data\pg_hba.conf" | Select-String -Pattern "^[^#]"
+ipconfig | findstr /i "IPv4"
+```
+
+> **Use the LAN address, never a WSL one.** `172.19.128.1` is the WSL2 gateway
+> — it reaches the Windows host only from *inside* a WSL VM. From any other
+> machine it is unroutable, and connections hang for the full timeout instead
+> of failing fast. Take the `192.168.1.x` value from `ipconfig`.
+
+> **Make errors readable.** The server runs `lc_messages = Spanish_Mexico.1252`,
+> so failures arrive containing `«»` guillemets (`0xAB`/`0xBB`) — invalid UTF-8.
+> psycopg2 assumes UTF-8 and raises `'utf-8' codec can't decode byte 0xab`,
+> destroying the real message. `ALTER SYSTEM SET lc_messages = 'C';` followed by
+> `SELECT pg_reload_conf();` ends this permanently, and changes message text
+> only — not data, encoding or collation.
+
+**Two paths that are easy to confuse.** The service's real `PGDATA` is
+`C:\Program Files\PostgreSQL\18\data`, created by the EDB installer and not
+managed by hand. The `...\postgres_local_server\pgdata\` folder is only a
+tablespace target you create yourself — and it must **not** sit inside the real
+data directory, which Postgres refuses.
+
+## Client connection
+
+Three files, and only one of them holds a secret:
+
+| File | Holds | Committed? |
+|---|---|---|
+| `~/.dbt/profiles.yml` | host, user `gama`, password, `dbname: analytics_lab` | **never** |
+| `dbt_project.yml` | `profile: 'analytics_lab'` — a *name*, no address | yes |
+| `profiles.example.yml` | the shape, with no values | yes |
+
+That split is the entire reason this repo is safe to publish. Verify the chain
+end to end with:
+
+```bash
+./venv/bin/dbt debug
+```
+
+Reading a failure: **`timeout expired`** means wrong address or firewall,
+**`connection refused`** means the host was reached but Postgres is not
+listening there, **`Host is down`** means the machine is off or asleep, and an
+**authentication error** means networking is already solved.
+
 ### The three channels
 
 **① Client → Server — LAN, TCP 5432.** dbt compiles the `.sql` files into real
@@ -502,15 +584,15 @@ machine is off or asleep. `auth error` = networking already solved.
 </details>
 
 <details>
-<summary><b>Step 4 — Create the database</b></summary>
+<summary><b>Step 4 — Create the database, and the codec trap that hid why it failed</b></summary>
+
+> The database created here was `local`, long since dropped. **Current build
+> steps are in [database.md](database.md).** The lesson below is permanent and
+> applies to every error this server returns.
 
 `dbt debug` reported a UTF-8 codec crash rather than a useful message. The real
 error, once decoded, was `no existe la base de datos «local»` — the database
 simply did not exist.
-
-```powershell
-& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -c 'CREATE DATABASE "local";'
-```
 
 **Why the error was unreadable:** the server runs
 `lc_messages = Spanish_Mexico.1252`. Its error text contains `«»` guillemets
@@ -540,18 +622,22 @@ This file lives **outside the repository**. That is the entire reason this
 project is safe to publish: the models, config and tasks are committed; the
 host and password are not.
 
+> The profile shown when this was written pointed at the `local` database.
+> **The current profile is `analytics_lab` — see [database.md](database.md),
+> Step 8.** The principle below has not changed.
+
 ```yaml
-pipelines_dbt_postgresql:
+analytics_lab:
   target: dev
   outputs:
     dev:
       type: postgres
       host: IP_Address
       port: 5432
-      user: postgres
+      user: gama
       pass: '...'
-      dbname: local
-      schema: public
+      dbname: analytics_lab
+      schema: staging
       threads: 4
       connect_timeout: 5      # fail in 5s instead of 20 while debugging
 ```
