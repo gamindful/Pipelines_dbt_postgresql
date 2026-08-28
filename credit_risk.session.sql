@@ -1,0 +1,1 @@
+select default_next_month, count(*), round(avg(limit_bal)) as avg_limit, round(avg(age),1) as avg_age from credit_raw.credit_default group by 1;

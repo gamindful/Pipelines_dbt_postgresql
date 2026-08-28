@@ -10,7 +10,7 @@ flowchart TB
         REPO["models/*.sql · dbt_project.yml<br/>tasks.json · requirements.txt<br/><i>code only — no credentials, no data</i>"]
     end
 
-    subgraph CLIENT["💻 CLIENT — MacBook · macOS"]
+    subgraph CLIENT["💻 CLIENT"]
         direction TB
         CODE["VS Code<br/><i>Cmd+Shift+B</i>"]
         CDBT["venv/bin/dbt<br/>dbt-core 1.12.3 + postgres"]
@@ -19,9 +19,13 @@ flowchart TB
         CPROF -. "reads connection" .-> CDBT
     end
 
-    subgraph SERVER["🖥️ SERVER — Windows PC · 192.168.1.69"]
+    subgraph SERVER["🖥️ SERVER · IP_Address"]
         direction TB
-        PG[("PostgreSQL 18.6<br/>database: local<br/>schema: public")]
+        PG[("PostgreSQL 18.6<br/><b>analytics_lab</b><br/>tablespace: analytics_tablespace")]
+        SRC["credit_risk<br/><i>source · loader writes</i>"]
+        DBT["staging · intermediate · marts<br/><i>dbt-owned</i>"]
+        PG --> SRC
+        PG --> DBT
     end
 
     CDBT ==>|"① compiled SQL over LAN · TCP 5432"| PG
@@ -36,9 +40,54 @@ flowchart TB
     classDef server fill:#eef0f6,stroke:#3a4a7a,stroke-width:2px,color:#14201c
     classDef cloud  fill:#f6f1e8,stroke:#8a6a1f,stroke-width:2px,color:#14201c
     class CODE,CDBT,CPROF client
-    class PG server
+    class PG,SRC,DBT server
     class REPO cloud
 ```
+
+## Current state of the server
+
+One database, one schema per domain. PostgreSQL cannot join across databases,
+so every project in the portfolio lives in `analytics_lab`.
+
+```
+Windows cluster IP_Address · PostgreSQL 18.6
+│
+├─▷ analytics_lab              tablespace: analytics_tablespace   owner: USERNAME
+│    ├─▷ credit_risk           SOURCE — written only by the Python loader
+│    │      ├─ credit_default    UCI 350 · 30,000 rows
+│    │      └─ german_credit     UCI 144 ·  1,000 rows
+│    ├─▷ bank_marketing        Project 2 source        (not created yet)
+│    ├─▷ bankruptcy            Project 3 source        (not created yet)
+│    ├─▷ market_data           Project 4 source        (not created yet)
+│    ├─▷ staging               dbt-owned · views
+│    ├─▷ intermediate          dbt-owned · ephemeral
+│    ├─▷ marts                 dbt-owned · tables
+│    └─▷ public
+│
+├─▷ postgres                   maintenance database
+└─▷ template0 / template1      cluster templates
+```
+
+| Object | Name | Created by |
+|---|---|---|
+| Tablespace | `analytics_tablespace` | `server_side/sql/01_tablespace_and_db.sql` |
+| Database | `analytics_lab` | `server_side/sql/01_tablespace_and_db.sql` |
+| Role | `USERNAME` | `server_side/sql/02_role.sql` |
+| Source schema | `credit_risk` | `server_side/sql/03_credit_risk_schema.sql` |
+| Model schemas | `staging`, `intermediate`, `marts` | dbt, on first run |
+| Profile | `analytics_lab` in `~/.dbt/profiles.yml` | manual — never committed |
+
+**The loader owns `credit_risk`; dbt owns the other three.** That separation
+means a bad `dbt run` can never destroy ingested source data.
+
+Because there is only one database, no dbt command needs `--profile` or
+`--target`:
+
+```bash
+dbt build --select credit_risk_marts
+```
+
+Full build steps are in [database.md](database.md).
 
 ### The three channels
 
@@ -118,9 +167,27 @@ place was most of the work.
 <details>
 <summary><b>Connection config</b></summary>
 
-A record of the steps taken on the **server** side (`192.168.1.69`, this Windows
+A record of the steps taken on the **server** side (`IP_Address`, this Windows
 machine) to stand up PostgreSQL 18 for `findata` and expose it safely to the
 LAN — the counterpart to the client-side record below. Each step expands.
+
+> **Historical.** These steps built the earlier `findata` database, with the
+> `financial_tablespace` tablespace, the `app_findata` role and the `crypto_fx`
+> schema. That stack was torn down and replaced by the single `analytics_lab`
+> database described under **Current state of the server** above; the current
+> build steps live in [database.md](database.md).
+>
+> Kept because the *mechanics* still apply and were expensive to learn — the
+> `NetworkService` grant on the tablespace folder, scoping `pg_hba.conf` to a
+> named database and role, the UTF-8 BOM trap, and the numpy adaptation bug.
+> Only the object names changed:
+>
+> | Then | Now |
+> |---|---|
+> | `findata` | `analytics_lab` |
+> | `financial_tablespace` | `analytics_tablespace` |
+> | `app_findata` | `USERNAME` |
+> | `crypto_fx` schema | `credit_risk` schema |
 
 <details>
 <summary><b>Step 1 — Confirm the existing install and network posture</b></summary>
@@ -426,7 +493,7 @@ The correct address is the machine's **LAN address**, found on Windows with:
 ipconfig | findstr /i "IPv4"      # take the 192.168.1.x, ignore 172.19.x
 ```
 
-Here that is **`192.168.1.69`**.
+Here that is **`IP_Address`**.
 
 **Reading failures:** `timeout` = wrong address or firewall. `connection
 refused` = host reached, Postgres not listening there. `Host is down` = the
@@ -479,7 +546,7 @@ pipelines_dbt_postgresql:
   outputs:
     dev:
       type: postgres
-      host: 192.168.1.69
+      host: IP_Address
       port: 5432
       user: postgres
       pass: '...'
@@ -585,7 +652,7 @@ ignores `dbt.dbtPath` and always launches Fusion, which cannot speak to
 Postgres. It states this outright:
 
 > This extension requires the dbt Fusion engine, and the dbt binary at
-> `/Users/gamaliel/.local/bin/dbt` can't run `dbt lsp`.
+> `/Users/USERNAMEliel/.local/bin/dbt` can't run `dbt lsp`.
 
 No setting changes that. Use a task instead — `.vscode/tasks.json`:
 

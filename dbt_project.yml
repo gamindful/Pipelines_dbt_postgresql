@@ -7,7 +7,7 @@ config-version: 2
 # Names which profile in ~/.dbt/profiles.yml supplies the connection.
 # The server address lives THERE, never here. That is what makes this
 # folder safe to push to GitHub.
-profile: 'findata'
+profile: 'analytics_lab'
 
 model-paths: ["models"]
 
