@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="660" viewBox="0 0 1420 660" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+  <rect width="1420" height="660" fill="#F4F6F8"/>
+
+  <text x="40" y="46" font-size="24" font-weight="700" fill="#151A21">Pipelines_dbt_postgresql — how the pieces connect</text>
+  <text x="40" y="72" font-size="14" fill="#667080">Two machines and one repository, joined by three independent channels.</text>
+
+  <!-- ============ GitHub ============ -->
+  <rect x="500" y="104" width="420" height="104" rx="8" fill="#F6F1E8" stroke="#8A6A1F" stroke-width="2"/>
+  <text x="520" y="132" font-size="13" font-weight="700" fill="#8A6A1F" letter-spacing="1">GitHub · gamindful/Pipelines_dbt_postgresql</text>
+  <text x="520" y="156" font-size="13" fill="#3A434F" font-family="Menlo, monospace">models/*.sql · dbt_project.yml · server_side/</text>
+  <text x="520" y="176" font-size="13" fill="#3A434F" font-family="Menlo, monospace">requirements.txt · database.md</text>
+  <text x="520" y="196" font-size="12.5" font-style="italic" fill="#8A6A1F">code only — no credentials, no data</text>
+
+  <!-- ============ CLIENT ============ -->
+  <rect x="40" y="290" width="400" height="280" rx="8" fill="#E8F4F0" stroke="#0F6E63" stroke-width="2"/>
+  <text x="60" y="320" font-size="13" font-weight="700" fill="#0F6E63" letter-spacing="1">CLIENT</text>
+  <text x="60" y="352" font-size="17" font-weight="600" fill="#151A21">VS Code + dbt</text>
+
+  <rect x="60" y="372" width="360" height="52" rx="5" fill="#FFFFFF" stroke="#C9DDD8"/>
+  <text x="76" y="393" font-size="13" font-family="Menlo, monospace" fill="#151A21">venv/bin/dbt</text>
+  <text x="76" y="412" font-size="12" fill="#667080">dbt-core 1.12.3 · dbt-postgres 1.11.0</text>
+
+  <rect x="60" y="436" width="360" height="70" rx="5" fill="#FFFFFF" stroke="#C9DDD8"/>
+  <text x="76" y="457" font-size="13" font-family="Menlo, monospace" fill="#151A21">~/.dbt/profiles.yml</text>
+  <text x="76" y="476" font-size="12" fill="#667080">host · user gama · password</text>
+  <text x="76" y="495" font-size="12" font-style="italic" fill="#9A3B2F">outside the repo — never committed</text>
+
+  <text x="60" y="534" font-size="12" fill="#667080">Cmd+Shift+B runs the open model</text>
+  <text x="60" y="552" font-size="12" fill="#667080">profile: analytics_lab — no --profile flag needed</text>
+
+  <!-- ============ SERVER ============ -->
+  <rect x="980" y="250" width="400" height="360" rx="8" fill="#EEF0F6" stroke="#3B4E8C" stroke-width="2"/>
+  <text x="1000" y="280" font-size="13" font-weight="700" fill="#3B4E8C" letter-spacing="1">SERVER · PostgreSQL 18.6</text>
+  <text x="1000" y="312" font-size="17" font-weight="600" fill="#151A21">analytics_lab</text>
+  <text x="1000" y="331" font-size="12" fill="#667080">tablespace: analytics_tablespace · owner: gama</text>
+
+  <rect x="1000" y="348" width="360" height="74" rx="5" fill="#FFFFFF" stroke="#C6CEE2"/>
+  <text x="1016" y="369" font-size="13" font-weight="600" font-family="Menlo, monospace" fill="#3B4E8C">credit_risk</text>
+  <text x="1016" y="388" font-size="12" fill="#3A434F">credit_default · german_credit</text>
+  <text x="1016" y="407" font-size="11.5" font-style="italic" fill="#667080">SOURCE — the loader writes, dbt only reads</text>
+
+  <rect x="1000" y="434" width="360" height="74" rx="5" fill="#FFFFFF" stroke="#C6CEE2"/>
+  <text x="1016" y="455" font-size="13" font-weight="600" font-family="Menlo, monospace" fill="#3B4E8C">staging · intermediate · marts</text>
+  <text x="1016" y="474" font-size="12" fill="#3A434F">views · ephemeral · tables</text>
+  <text x="1016" y="493" font-size="11.5" font-style="italic" fill="#667080">dbt-owned — created on first run</text>
+
+  <rect x="1000" y="520" width="360" height="60" rx="5" fill="#F4F6F8" stroke="#D5DBE6" stroke-dasharray="4 3"/>
+  <text x="1016" y="541" font-size="12" font-family="Menlo, monospace" fill="#667080">bank_marketing · bankruptcy · market_data</text>
+  <text x="1016" y="562" font-size="11.5" font-style="italic" fill="#8794A3">Projects 2–4 — not created yet</text>
+
+  <defs>
+    <marker id="a1" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 Z" fill="#3B4E8C"/>
+    </marker>
+    <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 Z" fill="#0F6E63"/>
+    </marker>
+    <marker id="a3" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+      <path d="M0,0 L7,3.2 L0,6.4 Z" fill="#8A6A1F"/>
+    </marker>
+  </defs>
+
+  <!-- (1) client -> server -->
+  <line x1="446" y1="392" x2="972" y2="392" stroke="#3B4E8C" stroke-width="3" marker-end="url(#a1)"/>
+  <text x="560" y="382" font-size="13" font-weight="600" fill="#3B4E8C">① compiled SQL over the LAN · TCP 5432</text>
+  <line x1="972" y1="428" x2="446" y2="428" stroke="#3B4E8C" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#a1)"/>
+  <text x="566" y="448" font-size="12.5" fill="#667080">results — views and tables are built on the server</text>
+
+  <!-- (2) client <-> github -->
+  <path d="M240,282 L240,220 L492,180" fill="none" stroke="#0F6E63" stroke-width="2.2" marker-end="url(#a2)"/>
+  <text x="252" y="242" font-size="13" font-weight="600" fill="#0F6E63">② git push / pull</text>
+
+  <!-- (3) github -> server (optional) -->
+  <path d="M928,170 L1140,208 L1140,242" fill="none" stroke="#8A6A1F" stroke-width="2" stroke-dasharray="7 4" marker-end="url(#a3)"/>
+  <text x="944" y="204" font-size="12.5" fill="#8A6A1F">③ clone / pull — optional, run dbt on the server</text>
+
+  <!-- footer note -->
+  <rect x="40" y="596" width="880" height="44" rx="5" fill="#FFFFFF" stroke="#DBE1E8"/>
+  <text x="58" y="616" font-size="12.5" font-weight="600" fill="#151A21">The credential boundary is the point of this diagram.</text>
+  <text x="58" y="633" font-size="12" fill="#3A434F">Code travels channel ②. The password exists only in each machine's own profiles.yml and travels only channel ①.</text>
+</svg>

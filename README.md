@@ -5,7 +5,7 @@ crosses between them by accident — each arrow below is a separate mechanism th
 had to be configured on its own.
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph GH["☁️ GitHub · gamindful/Pipelines_dbt_postgresql"]
         REPO["models/*.sql · dbt_project.yml<br/>tasks.json · requirements.txt<br/><i>code only — no credentials, no data</i>"]
     end
