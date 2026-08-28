@@ -1,0 +1,10 @@
+# Server-side dependencies: downloading and loading datasets.
+# dbt is NOT needed here -- it runs on the client and reaches this machine
+# over the network.
+pandas>=2.0
+SQLAlchemy>=2.0
+psycopg2-binary==2.9.12
+python-dotenv>=1.0
+requests>=2.31
+yfinance>=0.2            # Project 4 market data
+xlrd==2.0.2              # credit_default ships as .xls
