@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: credit_risk
+    schema: credit_risk
+    description: >
+      Raw credit-risk source tables. Written only by
+      server_side/utils/load_uci.py — dbt never writes here, so a bad
+      dbt run can never destroy ingested data.
+    loaded_at_field: loaded_at
+    freshness:
+      warn_after: {count: 30, period: day}
+      error_after: {count: 90, period: day}
+    tables:
+      - name: credit_default
+        description: >
+          UCI 350 — Default of Credit Card Clients (Taiwan, 2005).
+          Grain: one row per credit card client.
+      - name: german_credit
+        description: >
+          UCI 144 — Statlog German Credit. Grain: one row per loan applicant.
+          Categorical columns are coded (A11, A34, ...) per the UCI codebook
+          (german.doc); decoded to readable labels in staging.

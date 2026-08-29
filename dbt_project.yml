@@ -18,3 +18,7 @@ clean-targets:
 models:
   pipelines_dbt_postgresql:
     +materialized: view
+    credit_risk_marts:
+      staging:      {+materialized: view,      +schema: staging}
+      intermediate: {+materialized: ephemeral, +schema: intermediate}
+      marts:        {+materialized: table,     +schema: marts}

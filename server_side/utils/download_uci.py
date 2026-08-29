@@ -98,7 +98,13 @@ def fetch_archive(key: str, spec: dict) -> bytes:
 
 
 def members(payload: bytes, pattern: str, nested: bool) -> list[tuple[str, bytes]]:
-    """Return [(name, bytes)] matching pattern, descending into a nested zip."""
+    """Return [(name, bytes)] matching pattern, descending into a nested zip.
+
+    Recursive calls must not raise on a per-nested-zip miss: with multiple
+    nested zips (e.g. bank.zip + bank-additional.zip), an early match must
+    survive a later sibling zip that doesn't contain the pattern. Only the
+    top-level caller (download()) raises once every candidate is exhausted.
+    """
     found = []
     with zipfile.ZipFile(io.BytesIO(payload)) as zf:
         for n in zf.namelist():
@@ -108,8 +114,6 @@ def members(payload: bytes, pattern: str, nested: bool) -> list[tuple[str, bytes
             for n in zf.namelist():
                 if n.lower().endswith(".zip"):
                     found += members(zf.read(n), pattern, False)
-    if not found:
-        raise SystemExit(f"no member matching {pattern!r} in the archive")
     return sorted(found)
 
 
@@ -179,6 +183,8 @@ def download(key: str) -> None:
     print(f"\n=== {key} — {spec['title']} (UCI {spec['uci']}, CC BY 4.0) ===")
     payload = fetch_archive(key, spec)
     parts = members(payload, spec["member"], spec.get("nested", False))
+    if not parts:
+        raise SystemExit(f"no member matching {spec['member']!r} in the archive")
     if not spec.get("all_members"):
         parts = parts[:1]
 

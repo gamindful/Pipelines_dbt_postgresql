@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: fct_credit_default
+    description: >
+      One row per credit card client (UCI 350). Target: default_next_month
+      (22.1% positive class).
+    columns:
+      - name: client_id
+        data_tests: [not_null, unique]
+      - name: default_next_month
+        data_tests: [not_null]
+
+  - name: fct_german_credit_risk
+    description: >
+      One row per loan applicant (UCI 144). Target: credit_risk_class
+      ('good' / 'bad').
+    columns:
+      - name: applicant_id
+        data_tests: [not_null, unique]
+      - name: credit_risk_class
+        data_tests: [not_null]

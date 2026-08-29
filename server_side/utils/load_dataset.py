@@ -1,6 +1,6 @@
 """
 Load the CSV files produced by download_dataset.py (under datasets/) into
-the crypto_fx schema of the findata Postgres database.
+the market_data schema of the analytics_lab Postgres database.
 
 Upserts into crypto_fx.assets and crypto_fx.price_history, so it is safe to
 re-run after downloading fresh data (existing rows for a date are updated,
@@ -51,7 +51,7 @@ def upsert_asset(conn, symbol, meta):
     asset_type, base_ccy, quote_ccy, display_name = meta
     row = conn.execute(
         text("""
-            INSERT INTO crypto_fx.assets (symbol, asset_type, base_currency, quote_currency, display_name)
+            INSERT INTO market_data.assets (symbol, asset_type, base_currency, quote_currency, display_name)
             VALUES (:symbol, :asset_type, :base_ccy, :quote_ccy, :display_name)
             ON CONFLICT (symbol) DO UPDATE
                 SET display_name = EXCLUDED.display_name
@@ -90,7 +90,7 @@ def load_price_history(conn, asset_id, df):
 
     conn.execute(
         text("""
-            INSERT INTO crypto_fx.price_history
+            INSERT INTO market_data.price_history
                 (asset_id, trade_date, open, high, low, close, adj_close, volume)
             VALUES
                 (:asset_id, :trade_date, :open, :high, :low, :close, :adj_close, :volume)
