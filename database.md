@@ -44,7 +44,7 @@ crossing *databases* is impossible. Hence: one database, many schemas.
 
 ---
 
-## Server steps (Windows, `192.168.1.69`)
+## Server steps (Windows, `192.168.1.71`)
 
 Everything in this section runs directly on that machine, in a regular
 PowerShell window — no particular working directory required, every path
@@ -163,7 +163,7 @@ analytics_lab:
   outputs:
     dev:
       type: postgres
-      host: 192.168.1.69
+      host: 192.168.1.71
       port: 5432
       user: gama
       pass: '<password-from-step-4>'

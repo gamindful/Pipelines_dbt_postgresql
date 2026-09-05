@@ -83,7 +83,7 @@ CSVs don't carry (`source`, `loaded_at` — both have `DEFAULT`s;
 CSV to match the table's full column count and order and fails immediately.
 
 **Host:** `127.0.0.1` only works when `psql` runs *on* the server itself.
-From a Mac or Linux client, use the LAN address, `192.168.1.69`.
+From a Mac or Linux client, use the LAN address, `192.168.1.71`.
 
 #### Windows
 
@@ -117,7 +117,7 @@ Method 2 if this errors with `must be owner of sequence`.
 **If running from WSL on this same machine:** don't use the WSL-visible
 gateway address (`172.19.x.x`) as the host — it's unroutable from outside
 the WSL VM and produces a 20-second timeout, not a clean refusal. Use the
-Windows host's real LAN address, `192.168.1.69`, same as any other client
+Windows host's real LAN address, `192.168.1.71`, same as any other client
 (see the top-level `README.md`, Step 3, for the full story on that one).
 
 #### macOS
@@ -131,9 +131,9 @@ first). Paths use forward slashes; the repo clone's location replaces
 ```bash
 export PGPASSWORD='<app_credit password>'
 
-psql -U app_credit -h 192.168.1.69 -d credit_risk -c "\copy credit_raw.credit_default (client_id, limit_bal, sex, education, marriage, age, pay_0, pay_2, pay_3, pay_4, pay_5, pay_6, bill_amt1, bill_amt2, bill_amt3, bill_amt4, bill_amt5, bill_amt6, pay_amt1, pay_amt2, pay_amt3, pay_amt4, pay_amt5, pay_amt6, default_next_month) FROM '$HOME/path/to/pipelines_dbt_postgresql/server_side/datasets/credit/credit_default.csv' WITH (FORMAT csv, HEADER true)"
+psql -U app_credit -h 192.168.1.71 -d credit_risk -c "\copy credit_raw.credit_default (client_id, limit_bal, sex, education, marriage, age, pay_0, pay_2, pay_3, pay_4, pay_5, pay_6, bill_amt1, bill_amt2, bill_amt3, bill_amt4, bill_amt5, bill_amt6, pay_amt1, pay_amt2, pay_amt3, pay_amt4, pay_amt5, pay_amt6, default_next_month) FROM '$HOME/path/to/pipelines_dbt_postgresql/server_side/datasets/credit/credit_default.csv' WITH (FORMAT csv, HEADER true)"
 
-psql -U app_credit -h 192.168.1.69 -d credit_risk -c "\copy credit_raw.german_credit (checking_status, duration_months, credit_history, purpose, credit_amount, savings_status, employment_since, installment_rate, personal_status_sex, other_debtors, residence_since, property_type, age_years, other_installment_plans, housing, existing_credits, job, dependents, telephone, foreign_worker, credit_risk_class) FROM '$HOME/path/to/pipelines_dbt_postgresql/server_side/datasets/credit/german_credit.csv' WITH (FORMAT csv, HEADER true)"
+psql -U app_credit -h 192.168.1.71 -d credit_risk -c "\copy credit_raw.german_credit (checking_status, duration_months, credit_history, purpose, credit_amount, savings_status, employment_since, installment_rate, personal_status_sex, other_debtors, residence_since, property_type, age_years, other_installment_plans, housing, existing_credits, job, dependents, telephone, foreign_worker, credit_risk_class) FROM '$HOME/path/to/pipelines_dbt_postgresql/server_side/datasets/credit/german_credit.csv' WITH (FORMAT csv, HEADER true)"
 
 unset PGPASSWORD
 ```
@@ -145,10 +145,10 @@ Client package usually isn't installed by default either:
 sudo apt install postgresql-client   # Debian/Ubuntu; dnf/yum on Fedora/RHEL
 ```
 Everything else matches macOS exactly — same `psql` binary, same POSIX
-shell syntax, same `-h 192.168.1.69`:
+shell syntax, same `-h 192.168.1.71`:
 ```bash
 export PGPASSWORD='<app_credit password>'
-psql -U app_credit -h 192.168.1.69 -d credit_risk -c "\copy credit_raw.credit_default (...) FROM '/home/you/path/to/pipelines_dbt_postgresql/server_side/datasets/credit/credit_default.csv' WITH (FORMAT csv, HEADER true)"
+psql -U app_credit -h 192.168.1.71 -d credit_risk -c "\copy credit_raw.credit_default (...) FROM '/home/you/path/to/pipelines_dbt_postgresql/server_side/datasets/credit/credit_default.csv' WITH (FORMAT csv, HEADER true)"
 unset PGPASSWORD
 ```
 
@@ -171,7 +171,7 @@ thing that does change with where you run it: `PGHOST`.** `localhost` only
 works if the script runs on the server itself:
 ```
 PGHOST=localhost      # server-side (this repo's own .env, used in this session)
-PGHOST=192.168.1.69   # client-side (Mac, Linux, or any other machine on the LAN)
+PGHOST=192.168.1.71   # client-side (Mac, Linux, or any other machine on the LAN)
 PGPORT=5432
 PGDATABASE=credit_risk
 PGUSER=app_credit

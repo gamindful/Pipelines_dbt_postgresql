@@ -97,7 +97,7 @@ Verified already in place, so a client machine just needs to point at it:
 | `pg_hba.conf` | `host all all 192.168.1.0/24 scram-sha-256` |
 | Windows Firewall | inbound TCP 5432 allowed |
 | Network profile | Private |
-| Server LAN address | `192.168.1.69` |
+| Server LAN address | `192.168.1.71` |
 
 If any of these ever need rebuilding, see `pipelines_dbt_postgresql/database.md`
 ("Server steps") — that project stood up the same server-side networking
@@ -143,7 +143,7 @@ this one now reuses.
    OLLAMA_CHAT_MODEL=qwen3:8b
    OLLAMA_EMBED_MODEL=nomic-embed-text
 
-   POSTGRES_HOST=192.168.1.69               # the server's LAN address, not localhost
+   POSTGRES_HOST=192.168.1.71               # the server's LAN address, not localhost
    POSTGRES_PORT=5432
    POSTGRES_DATABASE=analytics_lab
    POSTGRES_USER=gama

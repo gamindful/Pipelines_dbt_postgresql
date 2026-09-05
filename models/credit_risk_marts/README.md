@@ -48,7 +48,7 @@ is identical on both machines; only `~/.dbt/profiles.yml` and
 ## 2 · Server hierarchy — where the objects live
 
 ```
-Windows cluster 192.168.1.69 · PostgreSQL 18.6
+Windows cluster 192.168.1.71 · PostgreSQL 18.6
 │
 └─▷ analytics_lab                tablespace: analytics_tablespace
      ├─▷ credit_risk             SOURCE — credit_default, german_credit
@@ -158,7 +158,7 @@ analytics_lab:
   outputs:
     dev:
       type: postgres
-      host: 192.168.1.69
+      host: 192.168.1.71
       port: 5432
       user: gama
       pass: '...'

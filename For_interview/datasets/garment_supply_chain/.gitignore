@@ -1,0 +1,2 @@
+# The 96 MB DataCo source is re-fetchable: python3 prepare_datasets.py --download
+_source/DataCoSupplyChainDataset.csv

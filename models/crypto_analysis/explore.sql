@@ -8,7 +8,7 @@ select current_database()      as database,
        version()              as server_version;
 
 -- ============================================================
--- CLUSTER level -- every database on 192.168.1.69
+-- CLUSTER level -- every database on 192.168.1.71
 -- ============================================================
 select datname                                        as database,
        pg_get_userbyid(datdba)                        as owner,

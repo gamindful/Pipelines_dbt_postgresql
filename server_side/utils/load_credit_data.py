@@ -5,7 +5,7 @@ credit_raw schema of the credit_risk database.
 Connection settings come from server_side/.env (PGHOST, PGPORT, PGDATABASE,
 PGUSER, PGPASSWORD) or from the environment, so no credential is hardcoded.
 Run this on the SERVER for a localhost load, or from the client by pointing
-PGHOST at 192.168.1.69 -- the code is identical either way.
+PGHOST at 192.168.1.71 -- the code is identical either way.
 
 Bulk loading uses client-side COPY ... FROM STDIN rather than server-side
 COPY '<path>'. Server-side COPY reads the SERVER's filesystem, which would
